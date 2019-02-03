@@ -38,4 +38,3 @@ CAIS++ Spring 2019 Project: Building an Agent to Trade with Reinforcement Learni
 
 #### Medium Articles
 - [Learning to trade with RL](https://medium.com/@andytwigg/learning-to-trade-with-deep-rl-666ed6bbd921)
--
