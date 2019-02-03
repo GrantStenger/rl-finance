@@ -10,6 +10,7 @@ CAIS++ Spring 2019 Project: Building an Agent to Trade with Reinforcement Learni
   - Homework:
     - Read first three chapter of [Spinning Up](https://spinningup.openai.com/en/latest/)
     - Watch the first half of [Stanford RL Lecture](https://www.youtube.com/watch?v=lvoHnicueoE&t=498s)
+    - Code up your own LSTM on the AAPL data. Check each other's out for inspiration, find online resources, ask questions in the slack. Should be a useful exercise for everyone!
     - (Optional: Watch [LSTM Intro Video](https://www.youtube.com/watch?v=WCUNPb-5EYI))
 - February 10th: Working LSTM model
 - February 17th: Working DQN
