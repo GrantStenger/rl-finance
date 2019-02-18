@@ -50,7 +50,15 @@ CAIS++ Spring 2019 Project: Building an Agent to Trade with Reinforcement Learni
   - Visualization
   - Gym Trading Environment
   - Integrate LSTM into DDDQN
-- February 17th: Working DQN
+- February 18th: Working DQN
+  -
+  - Built first policy gradient model (Jincheng)
+  - Worked on data pre-processing (Tomas)
+  - Today's plan
+    - Data pre-processing
+    - Use data as input into the gym
+    - Finalize the model 
+
 - February 24th: Working Actor-Critic Model
 - March 3rd: Add details like trading costs, slippage, and ask-bid spread; compute performance statistics; data visualization
 
