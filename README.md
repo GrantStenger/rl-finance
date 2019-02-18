@@ -50,7 +50,26 @@ CAIS++ Spring 2019 Project: Building an Agent to Trade with Reinforcement Learni
   - Visualization
   - Gym Trading Environment
   - Integrate LSTM into DDDQN
-- February 17th: Working DQN
+- February 18th: Working DQN
+  -
+  - Built first policy gradient model (Jincheng)
+  - Worked on data pre-processing (Tomas)
+  - Today's plan
+    - Data pre-processing
+    - Use data as input into the gym
+    - Finalize the model 
+  - Four inputs for the states determined: 
+    - % Change from Last Minute
+    - Amount of Cash
+    - Volume
+    - Amount invested in a given stock 
+  - States will be continuous 
+  - Frequency of action (punishment/reward) is a hyper-parameter 
+    - 10 Minutes? 
+  - Reward is linear, punishment is 2x linear 
+    - If 1% up, reward 1 point. If 1% down, deduct 2 points. 
+    - Totaled in the end. Either a huge reward or huge punishment depending on performance. 
+
 - February 24th: Working Actor-Critic Model
 - March 3rd: Add details like trading costs, slippage, and ask-bid spread; compute performance statistics; data visualization
 

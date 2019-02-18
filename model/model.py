@@ -23,16 +23,14 @@ class Encoder(nn.Module):
     def forward(self, input, h_0=None, c_0=None):
         """ input should have size (batch_size, seq_len, input_size)"""
 
-        if h_0 is None:
-            h_0 = torch.zeros((self.num_layers, self.batch_size, self.hidden_size))
-        if c_0 is None:
-            c_0 = torch.zeros((self.num_layers, self.batch_size, self.hidden_size))
-
         # Forward propagation to calculate the encoding vector
         # We only care about the final unit output, i.e., the hidden state of the final unit
-        _, h_n, _ = self.LSTM(input, (h_0, c_0))
-        # h_n should have shape (batch_size, num_layers, hidden_size). We only want the content from the last layer
-        encoding = h_n[:, -1, :]
+        if (h_0 is not None) and (c_0 is not None):
+            _, (h_n, _) = self.LSTM(input, (h_0, c_0))
+        else:
+            _, (h_n, _) = self.LSTM(input)
+        # h_n should have shape (num_layers, batch_size, hidden_size). We only want the content from the last layer
+        encoding = h_n[-1, :, :]
         # squeeze the encoding vector so that it has shape (batch_size, hidden_size)
         encoding = encoding.squeeze(1)
 
@@ -49,9 +47,6 @@ class PolicyNet(nn.Module):
             - hidden_size should match that of the encoding network (i.e. the size of the encoding layer)
 
             The agent should first decide which dimension to act on and then decide the numerical value of the aciton on that dimension
-
-            Note: due to the API restriction in creating distributions, currently only support batch_size=1
-
         """
         super(PolicyNet, self).__init__()
 
@@ -59,11 +54,17 @@ class PolicyNet(nn.Module):
         self.num_actions = num_actions
         self.act_lim = act_lim
         self.batch_size = batch_size
+        self.hidden_size = hidden_size
 
         self.LSTMCell = LSTMCell(input_size=state_size, hidden_size=hidden_size)
-        self.FC_decision = Linear(hidden_size, num_actions)         # Linear layer that decides the dimension the agent to act on
-        self.FC_values_mean = Linear(hidden_size, 3)                # Linear layer that computes the mean value of the agent's action on each dimension
-        self.FC_values_std = Linear(hidden_size, 3)                 # Linear layer that computes the standard deviation of the agent's action on each dimension
+
+        # Linear layer that decides the dimension the agent wants to act on.
+        #   Return the logits to be used to construct a Categorical distribution
+        self.FC_decision = Linear(hidden_size, num_actions)
+        # Linear layer that computes the mean value of the agent's action on each dimension
+        self.FC_values_mean = Linear(hidden_size, num_actions)
+        # Linear layer that computes the log standard deviation of the agent's action on each dimension
+        self.FC_values_logstd = Linear(hidden_size, num_actions)
 
     def forward(self, state, h_0=None, c_0=None):
         """
@@ -83,10 +84,13 @@ class PolicyNet(nn.Module):
 
         decision_logit = self.FC_decision(h_1)
         values_mean = self.FC_values_mean(h_1)
-        values_std = self.FC_values_std(h_1)
+        values_logstd = self.FC_values_logstd(h_1)
+
+        # Take the exponentials of log standard deviation
+        values_std = torch.exp(values_logstd)
 
         # Create a categorical (multinomial) distribution from which we can sample a decision on the action dimension
-        m_decision = OneHotCategorical(logits=decision_logit[0])
+        m_decision = OneHotCategorical(logits=decision_logit)
 
         # Sample a decision and calculate its log probability. decision of shape (num_actions,)
         decision = m_decision.sample()
@@ -94,20 +98,20 @@ class PolicyNet(nn.Module):
 
         # Create a list of Normal distributions for sampling actions in each dimension
         m_values = []
-        actions = None
+        action_values = None
         actions_log_prob = None
         for i in range(self.num_actions):
-            m_values.append(Normal(values_mean[0][i], values_std[0][i]))
-            if actions is None:
-                actions = m_values[-1].sample().unsqueeze(0)
-                actions_log_prob = m_values[-1].log_prob(actions)
+            m_values.append(Normal(values_mean[:, i], values_std[:, i]))
+            if action_values is None:
+                action_values = m_values[-1].sample().unsqueeze(1)                    # Unsqueeze to spare the batch dimension
+                actions_log_prob = m_values[-1].log_prob(action_values[:, -1]).unsqueeze(1)
             else:
-                actions = torch.cat([actions, m_values[-1].sample().unsqueeze(0)])
-                actions_log_prob = torch.cat([actions_log_prob, m_values[-1].log_prob(actions[-1])])
+                action_values = torch.cat([action_values, m_values[-1].sample().unsqueeze(1)], dim=1)
+                actions_log_prob = torch.cat([actions_log_prob, m_values[-1].log_prob(action_values[:, -1]).unsqueeze(1)], dim=1)
 
         # Filter the final action value in the intended action dimension
-        final_action = (actions * decision).squeeze()
-        final_action_log_prob = (actions_log_prob * decision).squeeze()
+        final_action_values = (action_values * decision).sum(dim=1)
+        final_action_log_prob = (actions_log_prob * decision).sum(dim=1)
 
         # Calculate the final log probability
         #   Pr(action value in the ith dimension) = Pr(action value given the agent chooses the ith dimension)
@@ -115,6 +119,6 @@ class PolicyNet(nn.Module):
         log_prob = decision_log_prob + final_action_log_prob
 
         # Return the hidden and cell states as well in order to pass in the LSTM cell in the next time step
-        return final_action, log_prob, h_1, c_1
+        return decision, final_action_values, log_prob, h_1, c_1
 
 
