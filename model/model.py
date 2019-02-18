@@ -1,7 +1,6 @@
 import torch
 import torch.nn as nn
 from torch.nn import LSTM, LSTMCell, Linear
-import torch.nn.functional as F
 from torch.distributions.one_hot_categorical import OneHotCategorical
 from torch.distributions import Normal
 
@@ -39,7 +38,7 @@ class Encoder(nn.Module):
 
 class PolicyNet(nn.Module):
 
-    def __init__(self, state_size, num_actions, act_lim=1, batch_size=1, hidden_size=128):
+    def __init__(self, state_size, num_actions, act_lim=1, batch_size=1, hidden_size=128, num_layers=2, dropout=0.85):
         """ Construct a multilayer LSTM that computes the action given the state
 
             - shape of input state is given by state_size
@@ -55,8 +54,16 @@ class PolicyNet(nn.Module):
         self.act_lim = act_lim
         self.batch_size = batch_size
         self.hidden_size = hidden_size
+        self.num_layers = num_layers
+        self.dropout = dropout
 
-        self.LSTMCell = LSTMCell(input_size=state_size, hidden_size=hidden_size)
+        #
+
+        # Create multilayer LSTM cells
+        self.cell_list = nn.ModuleList()
+        self.cell_list.append(LSTMCell(input_size=state_size, hidden_size=hidden_size))
+        for i in range(1, num_layers):
+            self.cell_list.append(LSTMCell(input_size=hidden_size, hidden_size=hidden_size))
 
         # Linear layer that decides the dimension the agent wants to act on.
         #   Return the logits to be used to construct a Categorical distribution
@@ -66,21 +73,30 @@ class PolicyNet(nn.Module):
         # Linear layer that computes the log standard deviation of the agent's action on each dimension
         self.FC_values_logstd = Linear(hidden_size, num_actions)
 
-    def forward(self, state, h_0=None, c_0=None):
+    def forward(self, state, h0_list=None, c0_list=None):
         """
-            - At the first step, h_0 should be the encoding vector from Encoder with shape (batch_size, hidden_size).
+            - At the first step, h0_list[0] should be the encoding vector from Encoder with shape (batch_size, hidden_size).
                 Note that we should transfrom the shape properly.
+            - h0_list, c0_list should have the same length as the number of layers
 
         """
 
+        # TODO: Test the dimensions of this multilayer LSTM policy net
+
+        assert len(h0_list) == self.num_layers
+        assert len(c0_list) == self.num_layers
+        h1_list = []
+        c1_list = []
 
         # Forward propagation
-        if h_0 is None:
-            h_0 = torch.zeros((self.batch_size, self.hidden_size))
-        if c_0 is None:
-            c_0 = torch.zeros((self.batch_size, self.hidden_size))
-
-        h_1, c_1 = self.LSTMCell(state, (h_0, c_0))
+        h_1, c_1 = self.LSTMCell(state, (h0_list[0], c0_list[0]))
+        h1_list.append(h_1)
+        c1_list.append(c_1)
+        for i in range(1, self.num_layers):
+            h_1, c_1 = self.LSTMCell(h_1, (h0_list[i], c0_list[i]))
+            h1_list.append(h_1)
+            c1_list.append(c_1)
+        h_1 = h1_list[-1]
 
         decision_logit = self.FC_decision(h_1)
         values_mean = self.FC_values_mean(h_1)
@@ -112,6 +128,9 @@ class PolicyNet(nn.Module):
         # Filter the final action value in the intended action dimension
         final_action_values = (action_values * decision).sum(dim=1)
         final_action_log_prob = (actions_log_prob * decision).sum(dim=1)
+
+        # Scale the action value by act_lim
+        final_action_values = final_action_values * self.act_lim
 
         # Calculate the final log probability
         #   Pr(action value in the ith dimension) = Pr(action value given the agent chooses the ith dimension)
