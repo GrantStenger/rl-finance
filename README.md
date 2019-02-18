@@ -58,6 +58,13 @@ CAIS++ Spring 2019 Project: Building an Agent to Trade with Reinforcement Learni
     - Data pre-processing
     - Use data as input into the gym
     - Finalize the model 
+  - Four inputs for the states determined: 
+    - % Change from Last Minute
+    - Amount of Cash
+    - Volume
+    - Amount invested in a given stock 
+  - States will be continuous 
+  
 
 - February 24th: Working Actor-Critic Model
 - March 3rd: Add details like trading costs, slippage, and ask-bid spread; compute performance statistics; data visualization
