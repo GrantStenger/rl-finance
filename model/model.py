@@ -122,3 +122,35 @@ class PolicyNet(nn.Module):
         return decision, final_action_values, log_prob, h_1, c_1
 
 
+def optimize_model(policy_net, batch_log_prob, batch_rewards, optimizer, GAMMA=0.999, device='cuda'):
+    """ Optimize the model for one step"""
+
+    # Obtain batch size
+    batch_size = len(batch_log_prob)
+
+    # Calculate weight
+    # Simple Policy Gradient: Use trajectory Reward To Go
+    batch_weight = []
+    for rewards in batch_rewards:
+        n = rewards.shape[0]
+        rtg = torch.zeros(n, device=device)
+        for i in reversed(range(n)):
+            rtg[i] = rewards[i] + (GAMMA * rtg[i+1] if i + 1 < n else 0)
+        batch_weight.append(rtg)
+
+    # Calculate grad-prob-log
+    loss = None
+    for i in range(batch_size):
+        if loss is None:
+            loss = - torch.sum(batch_log_prob[i] * batch_weight[i])
+        else:
+            loss += - torch.sum(batch_log_prob[i] * batch_weight[i])
+
+    loss = loss / torch.tensor(batch_size, device=device)
+    # Gradient Ascent
+    optimizer.zero_grad()
+    loss.backward()
+
+    for param in policy_net.parameters():
+        param.grad.data.clamp_(-1, 1)
+    optimizer.step()
