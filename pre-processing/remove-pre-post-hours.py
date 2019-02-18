@@ -3,7 +3,7 @@ import pandas as pd
 
 def main():
     original_df = pd.read_csv("../data/AAPL.csv")
-    df = pd.DataFrame(original_df.Date, columns=['Date']).loc[:1205]
+    df = pd.DataFrame(original_df.Date, columns=['Date']).loc[:]
     df['Time'] = original_df.Time
     df['Open'] = original_df.Open
     df['Volume'] = original_df.Volume
@@ -26,6 +26,8 @@ def main():
 
     #check if in market hours, if it's not delete rows
     for j in range(len(df)):
+        if j % 10000 == 0:
+            print(j)
         if df.Hour[j] < 9 or (df.Hour[j] == 9 and df.Minute[j] < 30) or (df.Hour[j] >= 16 and df.Minute[j] > 0) or df.Hour[j] > 16:
              df.drop([j],axis=0,inplace=True)
 
