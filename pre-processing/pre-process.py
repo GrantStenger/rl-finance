@@ -1,6 +1,16 @@
 # Import Dependencies
 import pandas as pd
 
+#### Normalize Data ####
+def normalize_data(df):
+    normalized_data = []
+    for i in range(1, len(df)):
+        per_change = (df['Open'][i] - df['Open'][i-1]) / (df['Open'][i-1]) * 100
+        normalized_data.append(per_change)
+    normalized_data = ["N/A"] + normalized_data
+    df['Percent-Change'] = normalized_data
+    return df
+
 #### Remove pre and post trading hours ####
 def is_valid_time(s):
     h = int(s[:2])
@@ -29,23 +39,13 @@ def slash_to_dash(df):
     df['Date'] = df['Date'].map(str).map(slash2dash)
     return df
 
-#### Normalize Data ####
-def normalize_data(df):
-    normalized_data = []
-    for i in range(1, len(df)):
-        per_change = (df['Open'][i] - df['Open'][i-1]) / (df['Open'][i-1]) * 100
-        normalized_data.append(per_change)
-    normalized_data = ["N/A"] + normalized_data
-    df['Percent-Change'] = normalized_data
-    return df
-
 #### Main ####
 def main():
     df = pd.read_csv("../data/AAPL.csv")
+    df = normalize_data(df)
     df = remove_pre_post_hours(df)
     df = df.reset_index(drop=True)
     df = slash_to_dash(df)
-    df = normalize_data(df)
     df.to_csv("../data/AAPL-Updated.csv", index=False)
 
 if __name__ == "__main__":
