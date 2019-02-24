@@ -7,7 +7,7 @@ import os
 import os.path as osp
 import random
 
-import trading_gym.series_envs.util as th
+import tradinggym.trading_gym.series_envs.util as th
 
 
 class PnlSnapshot:

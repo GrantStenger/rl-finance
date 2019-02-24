@@ -1,4 +1,4 @@
-from trading_gym.series_envs.series_env import SeriesEnv
+from tradinggym.trading_gym.series_envs.series_env import SeriesEnv
 
 series_env = SeriesEnv()
 
