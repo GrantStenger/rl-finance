@@ -46,7 +46,7 @@ def main():
     df = df.reset_index(drop=True)
     df = slash_to_dash(df)
     df = normalize_data(df)
-    print(df)
+    df.to_csv("../data/AAPL-Updated.csv", index=False)
 
 if __name__ == "__main__":
     main()
