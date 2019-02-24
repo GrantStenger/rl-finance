@@ -1,7 +1,10 @@
-from series_env import SeriesEnv
-
+from trading_gym.series_envs.series_env import SeriesEnv
 
 series_env = SeriesEnv()
+
+
+cur_date = series_env.get_cur_date().strftime('%Y-%m-%d %H:%M:%S')
+print(cur_date)
 
 series_env.rand_seed()
 cur_price = series_env.reset()[0]
@@ -15,6 +18,7 @@ cur_reward = 0
 
 while True:
     cur_date = series_env.get_cur_date().strftime('%Y-%m-%d %H:%M:%S')
+    print(cur_date)
     print('')
     print('Price diff', cur_price[0])
 

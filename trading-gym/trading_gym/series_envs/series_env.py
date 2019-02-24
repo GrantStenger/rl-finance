@@ -7,7 +7,7 @@ import os
 import os.path as osp
 import random
 
-import util.time_helper as th
+import trading_gym.series_envs.util as th
 
 
 class PnlSnapshot:
