@@ -3,11 +3,12 @@ from gym.spaces import Box, Discrete
 
 import pandas as pd
 import numpy as np
-import os
 import os.path as osp
 import random
 
-import tradinggym.trading_gym.series_envs.util as th
+import sys
+sys.path.append('/Users/apple/Documents/GitHub/rl-finance/tradinggym/trading_gym/series_envs')
+import util as th
 
 
 class PnlSnapshot:

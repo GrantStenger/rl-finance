@@ -1,6 +1,10 @@
-from tradinggym.trading_gym.series_envs.series_env import SeriesEnv
+import gym
+import trading_gym
 
-series_env = SeriesEnv()
+series_env = gym.make('SeriesEnv-v0')
+# from trading_gym.series_envs.series_env import SeriesEnv
+#
+# series_env = SeriesEnv()
 
 
 cur_date = series_env.get_cur_date().strftime('%Y-%m-%d %H:%M:%S')
