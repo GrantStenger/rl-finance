@@ -45,7 +45,6 @@ CAIS++ Spring 2019 Project: Building an Agent to Trade with Reinforcement Learni
       - Tomas: - Continue working on RL architecture
                - Make graph of prices + volume over batch
                - Visualize price gaps  
-
   - Pre-Process Data
   - Visualization
   - Gym Trading Environment
@@ -58,7 +57,6 @@ CAIS++ Spring 2019 Project: Building an Agent to Trade with Reinforcement Learni
     - Data pre-processing
     - Use data as input into the gym
     - Finalize the model
-
 - February 24th: Work day
   - Finish pre-processing
   - Finish trading gym
