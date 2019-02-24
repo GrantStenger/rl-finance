@@ -57,8 +57,6 @@ class PolicyNet(nn.Module):
         self.num_layers = num_layers
         self.dropout = dropout
 
-        #
-
         # Create multilayer LSTM cells
         self.cell_list = nn.ModuleList()
         self.cell_list.append(LSTMCell(input_size=state_size, hidden_size=hidden_size))
@@ -73,30 +71,42 @@ class PolicyNet(nn.Module):
         # Linear layer that computes the log standard deviation of the agent's action on each dimension
         self.FC_values_logstd = Linear(hidden_size, num_actions)
 
-    def forward(self, state, h0_list=None, c0_list=None):
-        """
-            - At the first step, h0_list[0] should be the encoding vector from Encoder with shape (batch_size, hidden_size).
-                Note that we should transfrom the shape properly.
-            - h0_list, c0_list should have the same length as the number of layers
+        # Variables to store lists of hidden states and cell states at the end of each time step so as to be used as
+        #   the input values to the next time step
+        # Reset to None at the start of each episode
+        self.h_list = None
+        self.c_list = None
 
+    def forward(self, state, encoding=None):
+        """
+            - At the first time step, pass in the encoding vector from Encoder with shape (batch_size, hidden_size)
+                using the optional argument encoding= . h_list and c_list will be reset to 0s
+            - At the following time steps, DO NOT pass in any value to the optional argument encoding=
         """
 
         # TODO: Test the dimensions of this multilayer LSTM policy net
 
-        assert len(h0_list) == self.num_layers
-        assert len(c0_list) == self.num_layers
-        h1_list = []
-        c1_list = []
+        # If encoding is not None, reset lists of hidden states and cell states
+        if encoding is not None:
+            self.h_list = [torch.zeros((self.batch_size, self.hidden_size)) * self.num_layers]
+            self.c_list = [torch.zeros((self.batch_size, self.hidden_size)) * self.num_layers]
+            self.h_list[0] = encoding
 
         # Forward propagation
-        h_1, c_1 = self.LSTMCell(state, (h0_list[0], c0_list[0]))
+        h1_list = []
+        c1_list = []
+        # First layer
+        h_1, c_1 = self.cell_list[0](state, (self.h_list[0], self.c_list[0]))
         h1_list.append(h_1)
         c1_list.append(c_1)
+        # Following layers
         for i in range(1, self.num_layers):
-            h_1, c_1 = self.LSTMCell(h_1, (h0_list[i], c0_list[i]))
+            h_1, c_1 = self.cell_list[i](h_1, (self.h_list[0], self.c_list[0]))
             h1_list.append(h_1)
             c1_list.append(c_1)
-        h_1 = h1_list[-1]
+        # Store hidden states list and cell state list
+        self.h_list = h1_list
+        self.c_list = c1_list
 
         decision_logit = self.FC_decision(h_1)
         values_mean = self.FC_values_mean(h_1)
@@ -138,7 +148,7 @@ class PolicyNet(nn.Module):
         log_prob = decision_log_prob + final_action_log_prob
 
         # Return the hidden and cell states as well in order to pass in the LSTM cell in the next time step
-        return decision, final_action_values, log_prob, h_1, c_1
+        return decision, final_action_values, log_prob
 
 
 def optimize_model(policy_net, batch_log_prob, batch_rewards, optimizer, GAMMA=0.999, device='cuda'):
