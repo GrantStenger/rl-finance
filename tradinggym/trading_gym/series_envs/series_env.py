@@ -7,6 +7,7 @@ import os.path as osp
 import random
 
 import sys
+# the following is the absolute path for series_envs/, modify it for your own local machine
 sys.path.append('/Users/apple/Documents/GitHub/rl-finance/tradinggym/trading_gym/series_envs')
 import util as th
 
