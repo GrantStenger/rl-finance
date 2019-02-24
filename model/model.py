@@ -41,11 +41,13 @@ class PolicyNet(nn.Module):
     def __init__(self, state_size, num_actions, act_lim=1, batch_size=1, hidden_size=128, num_layers=2, dropout=0.85):
         """ Construct a multilayer LSTM that computes the action given the state
 
+            The agent will first decide which dimension to act on and then decide the numerical value of the aciton on that dimension
+
             - shape of input state is given by state_size
             - dimensions of the orthogonal action space is given by num_actions, whereas act_lim gives the numerical bound for action values
+                Note: the last action dimension is assumed to be discrete, meaning the agent "does nothing".
             - hidden_size should match that of the encoding network (i.e. the size of the encoding layer)
 
-            The agent should first decide which dimension to act on and then decide the numerical value of the aciton on that dimension
         """
         super(PolicyNet, self).__init__()
 
@@ -77,7 +79,7 @@ class PolicyNet(nn.Module):
         self.h_list = None
         self.c_list = None
 
-    def forward(self, state, encoding=None):
+    def forward(self, state, encoding=None, device='cpu'):
         """
             - At the first time step, pass in the encoding vector from Encoder with shape (batch_size, hidden_size)
                 using the optional argument encoding= . h_list and c_list will be reset to 0s
@@ -88,8 +90,8 @@ class PolicyNet(nn.Module):
 
         # If encoding is not None, reset lists of hidden states and cell states
         if encoding is not None:
-            self.h_list = [torch.zeros((self.batch_size, self.hidden_size)) * self.num_layers]
-            self.c_list = [torch.zeros((self.batch_size, self.hidden_size)) * self.num_layers]
+            self.h_list = [torch.zeros((self.batch_size, self.hidden_size), device=device) * self.num_layers]
+            self.c_list = [torch.zeros((self.batch_size, self.hidden_size), device=device) * self.num_layers]
             self.h_list[0] = encoding
 
         # Forward propagation
@@ -123,10 +125,13 @@ class PolicyNet(nn.Module):
         decision_log_prob = m_decision.log_prob(decision)
 
         # Create a list of Normal distributions for sampling actions in each dimension
+        # Note: the last action is assumed to be discrete, meaning "doing nothing", so it has a conditional probability
+        #       of 1.
         m_values = []
         action_values = None
         actions_log_prob = None
-        for i in range(self.num_actions):
+        # All actions except the last one are assumed to have normal distribution
+        for i in range(self.num_actions - 1):
             m_values.append(Normal(values_mean[:, i], values_std[:, i]))
             if action_values is None:
                 action_values = m_values[-1].sample().unsqueeze(1)                    # Unsqueeze to spare the batch dimension
@@ -135,9 +140,15 @@ class PolicyNet(nn.Module):
                 action_values = torch.cat([action_values, m_values[-1].sample().unsqueeze(1)], dim=1)
                 actions_log_prob = torch.cat([actions_log_prob, m_values[-1].log_prob(action_values[:, -1]).unsqueeze(1)], dim=1)
 
+        # TODO: Append the last action. The last action has value 0.0 and log probability 0.0.
+        action_values = torch.cat([action_values, torch.zeros((self.batch_size, 1), device=device)], dim=1)
+        actions_log_prob = torch.cat([actions_log_prob, torch.zeros((self.batch_size, 1), device=device)], dim=1)
+
         # Filter the final action value in the intended action dimension
         final_action_values = (action_values * decision).sum(dim=1)
         final_action_log_prob = (actions_log_prob * decision).sum(dim=1)
+
+
 
         # Scale the action value by act_lim
         final_action_values = final_action_values * self.act_lim
@@ -147,7 +158,7 @@ class PolicyNet(nn.Module):
         #                                           * Pr(the agent chooses the ith dimension
         log_prob = decision_log_prob + final_action_log_prob
 
-        # Return the hidden and cell states as well in order to pass in the LSTM cell in the next time step
+
         return decision, final_action_values, log_prob
 
 
