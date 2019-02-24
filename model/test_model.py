@@ -20,6 +20,9 @@ batch_size = 32
 encoder = Encoder(input_size, batch_size, hidden_size, num_layers, dropout)
 policy_net = PolicyNet(state_size, num_actions, act_lim, batch_size, hidden_size)
 
+print("Encoder network: ", encoder)
+print("Policy network: ", policy_net)
+print()
 
 # Test encoder
 test_input = torch.randn((batch_size, seq_len, input_size))
@@ -32,10 +35,8 @@ print("encoding shape: ", encoding.shape)
 # Test Policy Net
 # One step forward propagation
 state = torch.randn((batch_size, state_size))
-decision, actions, log_prob, h_n, c_n = policy_net(state, h_0=encoding)
+decision, actions, log_prob = policy_net(state, encoding=encoding)
 
 print("decision shape: ", decision.shape)
 print("actions shape: ", actions.shape)
 print("actions log prob shape: ", log_prob.shape)
-print("h_n shape: ", h_n.shape)
-print("c_n shape: ", c_n.shape)
