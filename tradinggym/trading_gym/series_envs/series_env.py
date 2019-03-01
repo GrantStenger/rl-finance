@@ -1,207 +1,100 @@
-from gym import Env, logger
-from gym.spaces import Box, Discrete
+import gym
+from gym import error, spaces, utils
+from gym.utils import seeding
 
-import pandas as pd
-import numpy as np
-import os.path as osp
-import random
-
-import sys
-# the following is the absolute path for series_envs/, modify it for your own local machine
-sys.path.append('/Users/apple/Documents/GitHub/rl-finance/tradinggym/trading_gym/series_envs')
-import util as th
-
-
-class PnlSnapshot:
+class State:
     def __init__(self, ):
-        self.m_net_position = 0
-        self.m_avg_open_price = 0
-        self.m_net_investment = 0
-        self.m_realized_pnl = 0
-        self.m_unrealized_pnl = 0
-        self.m_total_pnl = 0
+        df = self.read_csv("../data/AAPL-Updated.csv")
+        self.df = df
+        self.index = 0
 
-    # buy_or_sell: 1 is buy, 2 is sell
-    def update_by_tradefeed(self, buy_or_sell, traded_price, traded_quantity):
-        assert (buy_or_sell == 1 or buy_or_sell == 2)
+    def reset():
+        self.index = 0
 
-        if buy_or_sell == 2 and (traded_quantity > self.m_net_position):
-            # Do nothing, to stop us from shorting the stock
-            return False
+    def next(self): # updates the current index to look at when feeding observations in step function
+        if self.index >= len(self.df) - 1:
+            return None, True
+        values = self.df.iloc[self.index].values
+        self.index += 1
+        return values, False
 
-        if buy_or_sell == 1 and self.m_net_position >= 1:
-            # Do not allow to buy twice
-            return False
+    def __get_curr_price():
+        return self.df.ix[self.index,'Open']
 
-        if buy_or_sell == 2 and self.m_net_position <= -1:
-            raise ValueError('We should not have negative net poistion')
+    def shape():
+        return self.df.shape
 
+class (gym.Env):
+    metadata = {'render.modes': ['human']}
 
+    def __init__(self, data, episode_len, initial_cash):
+        # self.states = []
+        self.state = None
+        self.bound = 1000000
+        self.initial_cash = initial_cash    # The number of cash the agent has at the start of each episode
+        self.current_cash = None            # The number of cash the agent currently possesses at this timestep
+        self.num_shares = None              # The number of shares the agent currently possesses at this timestep
+        # self.current_price = None           # The current stock price at this timestep
+        # self.current_volume = None          # The volume of the stock at this timestep
+        self.observation_space = spaces.Box(low=0, high=self.initial_cash, shape=(1,))
+        self.decision_space = spaces.Discrete(3)
+        self.action_space = spaces.Box(low=0, high=1)
+        self.episode_len = episode_len      # length of each episode
 
-        # buy: positive position, sell: negative position
-        quantity_with_direction = traded_quantity if buy_or_sell == 1 else (-1) * traded_quantity
-        is_still_open = (self.m_net_position * quantity_with_direction) >= 0
+        '''
+        # % Change in Prices, may be placed somewhere else
+        self.min_change_price = None        # The current change in prices by minute
+        self.act_change_price = None        # The current change in price by last action
+        '''
 
-        # net investment
-        self.m_net_investment = max( self.m_net_investment, abs( self.m_net_position * self.m_avg_open_price  ) )
-        # realized pnl
-        if not is_still_open:
-            # Remember to keep the sign as the net position
-            self.m_realized_pnl += ( traded_price - self.m_avg_open_price ) * \
-                min(
-                    abs(quantity_with_direction),
-                    abs(self.m_net_position)
-                ) * ( abs(self.m_net_position) / self.m_net_position )
-        # total pnl
-        self.m_total_pnl = self.m_realized_pnl + self.m_unrealized_pnl
-        # avg open price
-        if is_still_open:
-            self.m_avg_open_price = ( ( self.m_avg_open_price * self.m_net_position ) +
-                ( traded_price * quantity_with_direction ) ) / ( self.m_net_position + quantity_with_direction )
-        else:
-            # Check if it is close-and-open
-            if traded_quantity > abs(self.m_net_position):
-                self.m_avg_open_price = traded_price
-        # net position
-        self.m_net_position += quantity_with_direction
+    def step(self, action, current_shares):
+        # Action: Hold, Buy, Sell
+        # current_shares: the current number of shares we are dealing with (buy or sell)
+        # Observation : [current_cash, num_shares, %change(last min), %change(last action), current_price, volume]
+        # Return value: obs, reward, done, info
+        #   - obs: Observation
+        #   - reward: reward at this timestep
+        #   - done: True or False, indicating whether this episode has reached the end
+        #   - info: don't know, don't care
 
-        return True
+        price = self.state.__get_curr_price() # current price
+        cost = current_shares * price # how much cost we are dealing with
+        previous_portfolio = self.current_cash + self.num_shares * price
 
-    def update_by_marketdata(self, last_price):
-        self.m_unrealized_pnl = ( last_price - self.m_avg_open_price ) * self.m_net_position
-        self.m_total_pnl = self.m_realized_pnl + self.m_unrealized_pnl
+        if action == 0: #Hold
+            pass
 
-
-
-
-
-
-class SeriesEnv(Env):
-    def __init__(self, base_path, symb, start_date, end_date,
-            daily_start_time, daily_end_time, preproc=None):
-        window_length = 32
-        self.calc_pct = True
-
-        self.observation_space = Box(low=0, high=1, shape=(window_length,5),
-                dtype=np.float32)
-
-        # have three options. Buy, sell or hold
-        self.action_space = Discrete(3)
-
-        self.window_length = window_length
-
-        df = pd.read_csv(osp.join(base_path, symb + '.csv'),
-                            parse_dates=[0],
-                            infer_datetime_format=False,
-                            index_col=0)
-
-        daily_start_time = th.mk_time_hours(daily_start_time)
-        daily_end_time = th.mk_time_hours(daily_end_time)
-
-        if start_date is not None:
-            df = df[df.index >= start_date]
-        if end_date is not None:
-            df = df[df.index <= end_date]
-
-        day_hours = df.index.hour + df.index.minute/60
-        df = df[(day_hours >= daily_start_time) & (day_hours <= daily_end_time)]
-
-        self.actions = []
-
-        self.data = df[['open','high', 'low', 'close', 'volume']]
-        replace_data = preproc.preproc(self.data.values)
-        self.data = pd.DataFrame(replace_data,
-                index=self.data.index[1:],
-                columns=self.data.columns)
-        self.cur_i = 0
-        self.rand_seed()
-
-    def render(self, mode='human'):
-        raise NotImplemented('No render function')
-
-    def rand_seed(self):
-        self.seed(random.randint(0, len(self.data)))
-
-    """
-    Seeds the environment to start at the index after s that is the first new
-    day
-    """
-    def seed(self, s):
-        self.cur_i = s % len(self.data)
-        use_date = self.data.index[self.cur_i].date()
-
-        scan_i = self.cur_i
-        while scan_i >= 0:
-            if use_date != self.data.index[scan_i].date():
-                break
-
-            scan_i -= 1
-
-        self.cur_i = scan_i + 1
-
-    def get_net_pos(self):
-        return self.pnl.m_net_position
-
-    def get_cur_date(self):
-        return self.data.index[self.cur_i]
-
-    def __get_obs(self):
-        done = False
-
-        # Finish if we have reached the end of our data.
-        if (self.cur_i + self.window_length) >= len(self.data):
-            self.cur_i = 0
-            done = True
-
-        # Get our observation
-        obs = self.data.iloc[self.cur_i:self.cur_i + self.window_length]
-
-        start_date = obs.index[0].date()
-        end_date = obs.index[-1].date()
-
-        # Also end if the day is over
-        if start_date != end_date:
-            done = True
-            self.cur_i = self.cur_i + self.window_length
-        elif self.cur_i != 0:
-            done = False
-
-        self.cur_i += 1
-
-        return obs.values, obs['close'].iloc[-1], done
+        elif action == 1: #Buy
+            if cost<=current_cash:
+                self.num_shares += current_shares
+                self.current_cash -= cost
 
 
-    def step(self, action):
-        obs, last_price, done = self.__get_obs()
+        elif action == 2: #Sell
+            self.num_shares -= current_shares
+            self.current_cash += cost
 
-        reward = 0
+        state, done = self.state.next()
+        new_price = price
 
         if not done:
-            self.pnl.update_by_marketdata(last_price)
+            new_price = self.state.__get_curr_price()
 
-            if action != 0:
-                result = self.pnl.update_by_tradefeed(action, last_price, 1)
-                if action == 1:
-                    a = 'Buy'
-                elif action == 2:
-                    a = 'Sell'
+        new_equity = new_price * self.num_shares    # value of stock
+        current_portfolio = new_equity + self.current_cash
+        reward = ((current_portfolio - previous_portfolio)/previous_portfolio)*100.0
 
-                if result:
-                    self.actions.append([a, last_price, self.get_cur_date()])
-
-        reward = self.pnl.m_total_pnl
-        if done:
-            self.pnl = None
-
-        return obs, reward, done, {}
-
+        return state, reward, done, None
 
     def reset(self):
-        self.actions = []
-        obs = self.__get_obs()[0]
-        self.cur_i -= 1
-        self.pnl = PnlSnapshot()
-
-        return obs
+        self.state = State()
+        self.initial_cash = 1000000
+        state, done = self.state.next()
+        return state
 
 
+    def render(self, mode='human'):
+        pass
+
+    def close(self):
+        pass
