@@ -80,7 +80,8 @@ CAIS++ Spring 2019 Project: Building an Agent to Trade with Reinforcement Learni
 - Integrate NLP sentiment analysis as feature
 - Add more indicators to model
 - Clean up README
-- Do we hold positions overnight?
+- Do we hold positions overnight? I think initially no. There are also weird jumps over holidays and weekends.
+- Take into account high, low, close, volume data
 
 ## Interesting Resources
 
