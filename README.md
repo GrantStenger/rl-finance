@@ -73,14 +73,14 @@ CAIS++ Spring 2019 Project: Building an Agent to Trade with Reinforcement Learni
   - Create test datasets (Grant)
   - Integrate dataset with gym (Yang & Jincheng)
 - March 10th:
-- Outstanding To Do's:
-  - Working Actor-Critic Model
-  - Add details like trading costs, slippage, and ask-bid spread; compute performance statistics; data visualization
-
-## Long-Term To Do's
+### Outstanding To Do's:
+- Working Actor-Critic Model
+- Add details like trading costs, slippage, and ask-bid spread; compute performance statistics; data visualization
 - Build back testing environment
 - Integrate NLP sentiment analysis as feature
-- Add more indicators to model 
+- Add more indicators to model
+- Clean up README
+- Do we hold positions overnight?
 
 ## Interesting Resources
 
