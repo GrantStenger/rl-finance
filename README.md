@@ -62,19 +62,25 @@ CAIS++ Spring 2019 Project: Building an Agent to Trade with Reinforcement Learni
   - Finish trading gym
       - simulate.py
           - Change action 'quit' to quit when timeseries ends
-          - change time series to remove seconds 
+          - change time series to remove seconds
       - series_env.py
           - in class seriesenv
             - do not need daily_start_time, daily_end_time
             - remove randomization of start index (in def 'seed')
   - Finish pipelining
-- March 3rd: Working Actor-Critic Model
-- March 10th: Add details like trading costs, slippage, and ask-bid spread; compute performance statistics; data visualization
-
+- March 3rd:
+  - Work on implementing LSTM (Chris & Caroline)
+  - Create test datasets (Grant)
+  - Integrate dataset with gym (Yang & Jincheng)
+- March 10th:
+- Outstanding To Do's:
+  - Working Actor-Critic Model
+  - Add details like trading costs, slippage, and ask-bid spread; compute performance statistics; data visualization
 
 ## Long-Term To Do's
 - Build back testing environment
 - Integrate NLP sentiment analysis as feature
+- Add more indicators to model 
 
 ## Interesting Resources
 
