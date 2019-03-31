@@ -68,6 +68,7 @@ CAIS++ Spring 2019 Project: Building an Agent to Trade with Reinforcement Learni
             - do not need daily_start_time, daily_end_time
             - remove randomization of start index (in def 'seed')
   - Finish pipelining
+<<<<<<< HEAD
 - February 28th: Hackathon
   - TODO
     - Review the current reward function in series_env
@@ -81,8 +82,22 @@ CAIS++ Spring 2019 Project: Building an Agent to Trade with Reinforcement Learni
 
 
 ## Long-Term To Do's
+=======
+- March 3rd:
+  - Work on implementing LSTM (Chris & Caroline)
+  - Create test datasets (Grant)
+  - Integrate dataset with gym (Yang & Jincheng)
+- March 10th:
+### Outstanding To Do's:
+- Working Actor-Critic Model
+- Add details like trading costs, slippage, and ask-bid spread; compute performance statistics; data visualization
+>>>>>>> 13bd296a9295db93c71581f958b043ea734bdeda
 - Build back testing environment
 - Integrate NLP sentiment analysis as feature
+- Add more indicators to model
+- Clean up README
+- Do we hold positions overnight? I think initially no. There are also weird jumps over holidays and weekends.
+- Take into account high, low, close, volume data
 
 ## Interesting Resources
 
