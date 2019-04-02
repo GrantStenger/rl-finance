@@ -72,7 +72,9 @@ CAIS++ Spring 2019 Project: Building an Agent to Trade with Reinforcement Learni
   - Work on implementing LSTM (Chris & Caroline)
   - Create test datasets (Grant)
   - Integrate dataset with gym (Yang & Jincheng)
-- March 10th:
+- March 31th:
+  - Finish LSTM
+  -
 ### Outstanding To Do's:
 - Working Actor-Critic Model
 - Add details like trading costs, slippage, and ask-bid spread; compute performance statistics; data visualization
