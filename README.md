@@ -107,6 +107,10 @@ CAIS++ Spring 2019 Project: Building an Agent to Trade with Reinforcement Learni
 - [OpenAI Spinning Up](https://spinningup.openai.com/en/latest/index.html)
 - [UCL + DeepMind Lecture Series](https://www.youtube.com/playlist?list=PLqYmG7hTraZDNJre23vqCGIVpfZ_K2RZs&app=desktop)
 - [Stanford CS234: Reinforcement Learning](http://web.stanford.edu/class/cs234/CS234Win2018/index.html)
+- [CS234: Reinforcement Learning | Winter 2019](https://www.youtube.com/playlist?list=PLoROMvodv4rOSOPzutgyCTapiGlY2Nd8u)
+- [Deep-rl-bootcamp](https://sites.google.com/view/deep-rl-bootcamp/lectures)
+- [David Silver:Intro Reinforcement Learning](https://www.youtube.com/playlist?list=PLqYmG7hTraZDM-OYHWgPebj2MfCFzFObQ)
+- [Stanford CS330: Deep Multi-Task and Meta Learning](https://www.youtube.com/playlist?list=PLoROMvodv4rMC6zfYmnD7UG3LVvwaITY5)
 
 #### Papers
 ###### Primary
